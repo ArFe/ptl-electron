@@ -16,6 +16,8 @@
     "electron-rebuild": "^2.3.4"
   },
   "dependencies": {
+    "csv-parser": "^3.0.0",
+    "fs": "0.0.1-security",
     "serialport": "^9.0.6",
     "tableify": "^1.1.0"
   }

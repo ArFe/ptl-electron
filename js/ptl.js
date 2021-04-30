@@ -2,11 +2,50 @@
 
 var app;
 
+const { ipcRenderer } = require('electron');
+const csv = require('csv-parser');
+const fs = require('fs');
 const SerialPort = require('serialport');
-const Readline = require('@serialport/parser-readline')
+const Readline = require('@serialport/parser-readline');
 let serialPort;
 
+
 (function (app) {
+
+
+    function openFile() {
+        const results = [];
+
+        const file2open = {filters: [{ name: 'CSV', extensions: ['csv'] }], properties: ['openFile']};      
+        ipcRenderer.invoke('read-file', file2open)
+        .then(result => {
+            if(!result.canceled){
+                fs.createReadStream(result.filepath)
+                .pipe(csv({ separator: '\t' , mapHeaders: ({ header, index }) => header.toLowerCase()}))
+                .on('data', (data) => results.push(data))
+                .on('end', () => {
+                    console.log(results);
+                    if(results.length > 0){
+                        getElem("qty").value = results.length + 1;
+                        setTable(true);
+                        results.forEach((line, index) => {
+                            let i = index + 1;
+                            getElem("id"+i).value = line.id;
+                            getElem("value"+i).value = line.qty;
+                        });
+                        setCSV();
+                        if(getElem("load-and-send").checked && serialPort && serialPort.isOpen)
+                            sendMsg();
+                    }
+                });                
+            } else {
+                console.log('Open File canceled by the user');
+            }
+        })
+        .catch(err => {
+            console.log('Error: ' + err);
+        })
+    }
 
     async function listSerialPorts() {
         await SerialPort.list().then((ports, err) => {
@@ -56,33 +95,43 @@ let serialPort;
 
     function receivedMsg(msg){
         console.log(msg);
-        try{
-            let jsonMsg = JSON.parse(msg);
-            if(jsonMsg.expected) {
-                getElem("results").hidden = false;
-                // getElem("logs").value = msg + "\n" + getElem("logs").value;
-                getElem("expected").value = jsonMsg.expected;
-                getElem("actuated").value = jsonMsg.actuated;
+        if(msg.includes("RSP")){
+            getElem("logs").style = "height:5em;border:3px solid #ffc107;";
+        } else {
+            try{
+                let jsonMsg = JSON.parse(msg);
+                if(jsonMsg.expected || jsonMsg.actuated) {
+                    getElem("results").hidden = false;
+                    // getElem("logs").value = msg + "\n" + getElem("logs").value;
+                    getElem("expected").value = jsonMsg.expected;
+                    getElem("actuated").value = jsonMsg.actuated;
 
-                if(jsonMsg.expected == jsonMsg.actuated)
+                    if(jsonMsg.expected == jsonMsg.actuated)
+                        getElem("actuated").style = "border:3px solid green;";
+                    else if (jsonMsg.actuated !== "")
+                        getElem("actuated").style = "border:3px solid red;";
+        
+                }
+            } catch(err){
+                if(msg.includes("RSP")){
+                    getElem("logs").style = "height:5em;border:3px solid #ffc107;";
+                } else if(msg.includes("Running Sequence")) {
                     getElem("logs").style = "height:5em;border:3px solid green;";
-                else
+                } else if(msg.includes("error")) {
                     getElem("logs").style = "height:5em;border:3px solid red;";
-    
+                }
+                
+                if(!(msg.includes("\r")||msg.includes("Display"))){
+                    getElem("logs").value = msg + "\n" + getElem("logs").value;
+                }
+                if(msg.includes("End")){
+                    getElem("expected").value = "";
+                    getElem("actuated").value = "";
+                    getElem("actuated").style = "";
+                } 
+                getElem("results").hidden = false;
+                getElem("logs").hidden = false;
             }
-        } catch(err){
-            if(msg.includes("RSP"))
-                getElem("logs").style = "height:5em;border:3px solid #ffc107;";
-            else if(msg.includes("Running Sequence"))
-                getElem("logs").style = "height:5em;border:3px solid green;";
-            else if(msg.includes("error"))
-                getElem("logs").style = "height:5em;border:3px solid red;";
-            
-            if(!(msg.includes("\r")||msg.includes("Display")))
-                getElem("logs").value = msg + "\n" + getElem("logs").value;
-
-            getElem("results").hidden = false;
-            getElem("logs").hidden = false;
         }
     }
 
@@ -106,8 +155,8 @@ let serialPort;
             getElem("submit").disabled = true;
         }
     }
-   
-    function submit(event) {
+
+    function sendMsg() {
         let values = getElem("text-input").value.replace(/\n/g, "\\\\n");
         let msg = '{"values":"' + values + '",';
         msg += '"dxmid":"' + getElem("dxmid").value + '",';
@@ -133,54 +182,62 @@ let serialPort;
             getElem("logs").style = "height:5em;";               
         }
 
+    }
+   
+    function submit(event) {
+        sendMsg();
         event.preventDefault();
         scrollTo(0, 0);
     }
 
-    function setTable(){
+    function setTable(clear){
         let table = document.querySelector("#tableid");
-        let row;
         let col1;
         let col2;
         let col3;
+        let col4;
         let input1;
         let input2;
         let numItems = getElem("qty").value;
         if (isNaN(numItems))
             numItems = 1
 
+        if (clear) {
+            table.innerHTML = "";
+        }
+
         if(table != null){
             for (let index = 1; index <= numItems; index++) {
                 try {
                     getElem("id" + index);                    
                 } catch (error) {                  
-                    row = document.createElement("div");
                     col1 = document.createElement("div");
                     col2 = document.createElement("div");
                     col3 = document.createElement("div");
+                    col4 = document.createElement("div");
                     col1.innerHTML = "Pick " + index;
                     input1 = document.createElement("input");
                     input2 = document.createElement("input");
                     input1.id = "id" + index;
                     input2.id = "value" + index;
-                    input1.placeholder = "Pick " + index + " id";
-                    input2.placeholder = "Pick " + index + " value";
+                    input1.placeholder = "Id";
+                    input2.placeholder = "Value";
                     input1.type = "number";
                     input2.type = "number";
                     input1.className = "form-control";
                     input2.className = "form-control";
-                    col1.className = "col-sm-2 themed-grid-col";
-                    col2.className = "col-sm-5 themed-grid-col";
-                    col3.className = "col-sm-5 themed-grid-col";
+                    col1.className = "col-1 themed-grid-col align-middle";
+                    col2.className = "col-2 themed-grid-col";
+                    col3.className = "col-2 themed-grid-col";
+                    col4.className = "col-1 themed-grid-col";
                     col2.appendChild(input1);
                     col3.appendChild(input2);
                     input1.oninput = setCSV;
                     input2.oninput = setCSV;
-                    row.className = "row mb-3";
-                    row.appendChild(col1);
-                    row.appendChild(col2);
-                    row.appendChild(col3);
-                    table.appendChild(row);
+                    table.appendChild(col1);
+                    table.appendChild(col2);
+                    table.appendChild(col3);
+                    table.appendChild(col4);
                 }
             }
         }
@@ -188,6 +245,7 @@ let serialPort;
 
     function initialize() {
         getElem("ptl").onsubmit = submit;
+        getElem("file").onclick = openFile;
         let elems = document.querySelectorAll("input[type=number], textarea");
         for (let el of elems) {
             if (el.id.indexOf("version-") != 0){
@@ -206,7 +264,7 @@ let serialPort;
 
         setTimeout(function listPorts() {
             if(!serialPort || !serialPort.isOpen){
-                listSerialPorts();
+                // listSerialPorts();
                 getElem("submit").disabled = true;
             } else if(getElem("text-input").value != ""){
                 getElem("submit").disabled = false;

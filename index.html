@@ -18,25 +18,40 @@
             <main >
                 <div class="py-5 text-center">
                     <img class="d-block mx-auto mb-4 img-fluid" style="max-width:30%; height:auto;" src="./images/ptlmain.jpg" alt="">
-                    <h2>Banner Pick-To-Light MQTT generator</h2>
-                    <p class="lead">Configure your PTL application via AWS IOT</p>
+                    <h2>Banner Pick-To-Light generator</h2>
+                    <p class="lead">Configure your PTL application</p>
                 </div>
 
                 <div class="row g-5">
                     <div class="col-md-7 col-lg-8">
-                        <div class="row g-3" id="tableid">
-                            <div class="row g-3" id="results" >
-                                <textarea  class="form-control" readonly placeholder="Console logs" name="logs" id="logs" style="height:5em;"></textarea>
-                                <div class="col-sm-2 themed-grid-col">Pick expected</div>
-                                <div class="col-sm-4 themed-grid-col">
-                                    <input id="expected" readonly placeholder="Pick expected" type="number" class="form-control">
+                        <div class="row g-3">
+                            <div class="row" id="results" >
+                                <div class="row col-sm" >
+                                    <div class="row">
+                                        <div class="col-sm themed-grid-col">
+                                            <textarea  class="form-control" readonly placeholder="Console logs" name="logs" id="logs" style="height:5em;"></textarea>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-sm-2 themed-grid-col">Pick actuated</div>
-                                <div class="col-sm-4 themed-grid-col">
-                                    <input id="actuated" readonly placeholder="Pick actuated" type="number" class="form-control">
+                                <div class="row col-sm" >
+                                    <div class="row" >
+                                        <div class="col-sm themed-grid-col">Pick expected</div>
+                                        <div class="col-sm themed-grid-col">
+                                            <input id="expected" readonly type="number" class="form-control">
+                                        </div>
+                                    </div>
+                                    <div class="row" >
+                                        <div class="col-sm themed-grid-col">Pick actuated</div>
+                                        <div class="col-sm themed-grid-col">
+                                            <input id="actuated" readonly type="number" class="form-control">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <h4 class="mb-3">Pick Sequence</h4>
+                            <div class="col-sm-12 text-center">
+                                <h4 class="mb-3">Pick Sequence</h4>
+                            </div>
+                            <div class="row g-1" id="tableid"></div>
                         </div>
                     </div>
                     <div class="col-md-5 col-lg-4 order-md-last">            
@@ -68,8 +83,11 @@
                                     <label class="form-label" for="dxmid">DXM id</label>
                                     <input class="form-control" type="text" placeholder="dxm id" name="dxmid" id="dxmid" value="dxm">
                                 </div>
-                                <button class="w-100 btn btn-primary btn-lg" id="submit" type="submit">Submit Sequence</button>
-
+                                <div class="row g-1">
+                                    <div class="col-7 align-self-center">
+                                        <button class="w-100 btn btn-primary btn-lg" id="submit" type="submit">Submit Sequence</button>
+                                    </div>
+                                </div>
                                 <div hidden class="my-3">
                                     <label class="form-label" for="values">Values</label>
                                     <textarea  class="form-control" readonly placeholder="API commands" name="values" id="text-input" style="height:7em;"></textarea>
@@ -84,9 +102,20 @@
                                     <label class="form-label" for="rsp">Response</label>
                                     <input  class="form-control" type="text" readonly placeholder="Response" name="rsp" id="rsp" >
                                 </div>
-
                             </div>
                         </form>
+                        <div class="my-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="load-and-send" checked>
+                                <label class="form-check-label" for="load-and-send">Auto-send to the DXM after loading file</label>
+                            </div>
+                        </div>                                
+                        <div class="row g-1">
+                            <div class="col-7 align-self-center">
+                                <button class="w-100 btn btn-primary btn-lg" id="file" type="file">Open File</button>
+                            </div>
+                        </div>
+
                     </div>                             
                 </div>
             </main>    

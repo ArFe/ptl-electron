@@ -1,15 +1,16 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 const url = require('url');
-const csv = require('csv-parser');
-const fs = require('fs');
-const serialPort = require('./serialComm')
+const serialPort = require('./serialComm');
 // const SerialPort = require('serialport');
 const Readline = require('@serialport/parser-readline');
+const DelayBetweenMsgs = 300;
+
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let mainWindow
+let mainWindow;
+let rendEvent;
 
 function createWindow() {
     // Create the browser window.
@@ -54,6 +55,12 @@ function createWindow() {
         setTimeout(listPorts, 2000);
     }, 2000);
 
+    serialPort.serialEvents.on('msg', (msg) => {
+        if(rendEvent){
+            rendEvent.reply('serial-response', msg);
+        }
+    })
+
 };
 
 // This is required to be set to false beginning in Electron v9 otherwise
@@ -96,9 +103,53 @@ ipcMain.handle('read-file', async (event, file2open) => {
     }
 })
 
-ipcMain.on('asynchronous-message', (event, arg) => {
-    console.log(arg) // prints "ping"
-    event.reply('asynchronous-reply', 'pong')
+ipcMain.handle('serial-status', () => {
+        return serialPort.isOpen();        
+})
+
+/**
+ * @param {event} event the event to return
+ * @param {string} msg the message to send
+ * @param {integer} index the current index
+ * @param {string} msg the result to return
+ * @param {boolean} err if an error has happened
+ */
+
+function sendMsg(event, msg, index, result, err) {
+    if(index < msg.data.length){
+        serialPort.sendMsg(msg.cmd, msg.data[index], msg.rsp)            
+        .then(result => {
+            console.log('Msg %d sent ok: ' + result , index+1);
+            setTimeout(() => {
+                sendMsg(event, msg, ++index, result, false);
+            }, DelayBetweenMsgs);            
+        }).catch(error => {
+            errMsg = 'Msg sent error: ' + error;
+            console.log(errMsg);
+            sendMsg(event, msg, msg.data.length, errMsg, true);
+        });
+    } else {
+        event.reply('send-reply', { 'err': err, 'msg': result});
+        if(!err)
+            console.log('All %d commands sent ok!' , index);
+    }
+}
+
+ipcMain.on('send-msg', (event, msg) => {
+    if(serialPort.isOpen()){
+        serialPort.setMaxRetries(2);
+        sendMsg(event, msg, 0);
+    } else {
+        errMsg = 'Serial Port not Open';
+        console.log(errMsg);
+        event.reply('send-reply', { 'err': true, 'msg': errMsg});
+    };
+})
+
+
+ipcMain.on('init-event', (event) => {
+    rendEvent = event;
 })
   
-  
+
+

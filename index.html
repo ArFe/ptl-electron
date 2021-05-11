@@ -77,7 +77,6 @@
                             </div>                             
                         </div>                             
                         <form id="ptl" action="/ptl" method="post" >
-                            <input hidden type="number" name="qty" id="qty" value="1">   
                             <div class="row g-3">
                                 <div hidden class="my-3">
                                     <label class="form-label" for="dxmid">DXM id</label>
@@ -87,20 +86,6 @@
                                     <div class="col-7 align-self-center">
                                         <button class="w-100 btn btn-primary btn-lg" id="submit" type="submit">Submit Sequence</button>
                                     </div>
-                                </div>
-                                <div hidden class="my-3">
-                                    <label class="form-label" for="values">Values</label>
-                                    <textarea  class="form-control" readonly placeholder="API commands" name="values" id="text-input" style="height:7em;"></textarea>
-                                </div>
-
-                                <div hidden class="my-3">
-                                    <label class="form-label" for="cmd">Command</label>
-                                    <input  class="form-control" type="text" readonly placeholder="Command" name="cmd" id="cmd" >
-                                </div>
-
-                                <div hidden class="my-3">
-                                    <label class="form-label" for="rsp">Response</label>
-                                    <input  class="form-control" type="text" readonly placeholder="Response" name="rsp" id="rsp" >
                                 </div>
                             </div>
                         </form>
